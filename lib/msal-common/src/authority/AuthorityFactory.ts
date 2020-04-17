@@ -10,8 +10,19 @@ import { ClientAuthError } from "./../error/ClientAuthError";
 import { INetworkModule } from "./../network/INetworkModule";
 import { StringUtils } from "./../utils/StringUtils";
 import { UrlString } from "./../url/UrlString";
+import { B2cAuthority, B2CTrustedHostList } from "./B2cAuthority";
 
 export class AuthorityFactory {
+    /**
+     * Use when Authority is B2C to provide list of trusted/allowed domains.
+     */
+    public static setKnownAuthorities(knownAuthorities: Array<string>): void {
+        if (!B2CTrustedHostList.length) {
+            knownAuthorities.forEach(function(authority){
+                B2CTrustedHostList.push(authority);
+            });
+        }
+    }
 
     /**
      * Parse the url and determine the type of authority
@@ -20,14 +31,16 @@ export class AuthorityFactory {
         const authorityUrl = new UrlString(authorityString);
         const components = authorityUrl.getUrlComponents();
         const pathSegments = components.PathSegments;
-        switch (pathSegments[0]) {
-            case "tfp":
-                // tfp denotes a b2c url
-                return AuthorityType.B2C;
-            default:
-                // default authority is always AAD
-                return AuthorityType.Aad;
+
+        if (pathSegments[0] === "adfs") {
+            return AuthorityType.Adfs;
         }
+        else if (B2CTrustedHostList.length) {
+            return AuthorityType.B2C;
+        }
+
+        // defaults to Aad
+        return AuthorityType.Aad;
     }
 
     /**
@@ -41,12 +54,18 @@ export class AuthorityFactory {
         }
 
         const type = AuthorityFactory.detectAuthorityFromUrl(authorityUrl);
+
         // Depending on above detection, create the right type.
         switch (type) {
             case AuthorityType.Aad:
                 return new AadAuthority(authorityUrl, networkInterface);
+            case AuthorityType.B2C:
+                return new B2cAuthority(authorityUrl, networkInterface);
+            // TODO: Support ADFS here in a later PR
             default:
-                throw ClientAuthError.createInvalidAuthorityTypeError(`Given Url: ${authorityUrl}`);
+                throw ClientAuthError.createInvalidAuthorityTypeError(
+                    `${authorityUrl}`
+                );
         }
     }
 }

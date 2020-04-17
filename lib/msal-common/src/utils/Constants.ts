@@ -216,3 +216,4 @@ export enum GrantType {
     DEVICE_CODE_GRANT = "device_code"
 };
 
+export const ClientInfo = "client_info";

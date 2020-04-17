@@ -38,6 +38,7 @@ export type Configuration = {
 export type AuthOptions = {
     clientId: string;
     authority?: string;
+    knownAuthorities?: Array<string>
 };
 
 /**
@@ -74,7 +75,8 @@ export type LoggerOptions = {
 
 const DEFAULT_AUTH_OPTIONS: AuthOptions = {
     clientId: "",
-    authority: null
+    authority: null,
+    knownAuthorities: []
 };
 
 // Default module system options
